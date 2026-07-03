@@ -5,7 +5,6 @@ on:
     branches: [master]
     paths-ignore:
       - '**.md'
-      - '.github/**'
 
   pull_request:
     types: [opened, reopened, synchronize]
@@ -251,18 +250,28 @@ jobs:
 
       - name: GPG Import
         run: |
-          echo "${{ secrets.PUB_ASC }}" > "${{ secrets.PUB_ASC_FILE }}"
-          echo "${{ secrets.KEY_ASC }}" > "${{ secrets.KEY_ASC_FILE }}"
+          PUB_ASC_CONTENT="${{ secrets.PUB_ASC }}"
+          KEY_ASC_CONTENT="${{ secrets.KEY_ASC }}"
+          PUB_ASC_FILE="${{ secrets.PUB_ASC_FILE }}"
+          KEY_ASC_FILE="${{ secrets.KEY_ASC_FILE }}"
+
+          if [[ -z "$PUB_ASC_CONTENT" || -z "$KEY_ASC_CONTENT" || -z "$PUB_ASC_FILE" || -z "$KEY_ASC_FILE" ]]; then
+            echo "GPG secrets not configured, skipping signing setup"
+            exit 0
+          fi
+
+          echo "$PUB_ASC_CONTENT" > "$PUB_ASC_FILE"
+          echo "$KEY_ASC_CONTENT" > "$KEY_ASC_FILE"
 
           # Import the public key
-          gpg --batch --yes --import "${{ secrets.PUB_ASC_FILE }}"
+          gpg --batch --yes --import "$PUB_ASC_FILE"
           if [[ $? -ne 0 ]]; then
             echo "Error: Failed to import the public key"
             exit 1
           fi
           
           # Import the private key
-          gpg --batch --yes --import "${{ secrets.KEY_ASC_FILE }}"
+          gpg --batch --yes --import "$KEY_ASC_FILE"
           if [[ $? -ne 0 ]]; then
             echo "Error: Failed to import the private key"
             exit 2
